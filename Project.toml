@@ -9,6 +9,7 @@ TypeDBClient = "7ffdda62-db04-4838-9798-febd00f3125c"
 
 [compat]
 julia = "1.6"
+TypeDBClient = "0.1.0"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
