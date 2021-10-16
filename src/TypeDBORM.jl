@@ -1,15 +1,10 @@
 module TypeDBORM
 
-using TypeDBClient: ConceptMap, AbstractAttributeType, Proto
+using TypeDBClient: ConceptMap, AbstractAttributeType, Proto, ConceptManager, AbstractThingType
+using TypeDBClient: AbstractCoreTransaction, AbstractAttributeType, AbstractAttribute
+using TypeDBClient: get_instances, as_remote, get_has
 using TypeDBClient
 
-export concept_to_struct, define_conversation
-
 include("read_orm.jl")
-
-struct Person
-    email::String
-    full_name::String
-end
 
 end
