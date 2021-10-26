@@ -1,0 +1,4 @@
+database create typedb
+transaction typedb schema write
+source $file_path
+commit

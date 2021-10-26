@@ -1,10 +1,12 @@
 module TypeDBORM
 
 using TypeDBClient: ConceptMap, AbstractAttributeType, Proto, ConceptManager, AbstractThingType
-using TypeDBClient: AbstractCoreTransaction, AbstractAttributeType, AbstractAttribute
-using TypeDBClient: get_instances, as_remote, get_has
+using TypeDBClient: AbstractCoreTransaction, AbstractAttribute
+using TypeDBClient: as_remote, create, get_has, get_instances, put, set_has
 using TypeDBClient
 
-include("read_orm.jl")
+include("read_write_orm.jl")
+
+export read_concept_from_struct, write_struct
 
 end

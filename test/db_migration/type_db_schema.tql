@@ -1,0 +1,13 @@
+define
+    name sub attribute, value string;
+    contact_person sub attribute, value string;
+    salutation sub attribute, value string;
+    call_text sub attribute, value string;
+    done sub attribute, value boolean;
+
+    Employee sub entity,
+        owns name,
+        owns contact_person,
+        owns salutation,
+        owns call_text,
+        owns done;
