@@ -65,32 +65,33 @@ function write_struct_new(transaction::AbstractCoreTransaction,
     obj = _create_obj_from_type(transaction, type, save_struct)
 
     # take all fields of the struct and set attributes to the object
-    for field in fieldnames(typeof(save_struct))
-        value = getproperty(save_struct,Symbol(field))
-        attr = _create_or_load_attribute(transaction, field, value)
-        set_has(transaction, obj, attr)
-    end
+    obj = _set_attributes_of_entity!(transaction, obj, save_struct)
 
     return obj
 end
 
 function write_struct_update(transaction::AbstractCoreTransaction,
-    write_type,
-    type::Type{<:AbstractThingType},
+    write_struct,
     iid::String)
 
-    @error "Should be implemented"
+    # get the thing from the database
+    obj = get(ConceptManager(transaction), iid)
+
+    # take all fields of the struct and set attributes to the object
+    obj = _set_attributes_of_entity!(transaction, obj, write_struct)
+
+    return obj
 end
 
 function write_struct(transaction::AbstractCoreTransaction,
-    write_type,
+    write_struct,
     type::Type{<:AbstractThingType},
     iid::String = "")
 
     if isempty(iid)
-        write_struct_new(transaction,write_type, type)
+        write_struct_new(transaction, write_struct, type)
     else
-        write_struct_update(transaction,write_type, type, iid)
+        write_struct_update(transaction, write_struct, iid)
     end
 end
 
@@ -128,6 +129,54 @@ function _create_or_load_attribute(transaction::AbstractCoreTransaction, attribu
         result = attr
     end
     return result
+end
+
+function _create_or_load_relation(transaction::AbstractCoreTransaction,
+    thing::AbstractThing,
+    owner_struct,
+    relation_name::AbstractString,
+    relation_struct)
+
+    #get all relations of the thing stored yet
+    rels = get_relations(transaction, thing)
+    rel_have_to_be_new = true
+    if !isempty(rels)
+        @error "not empty realtions have to be implemented"
+    end
+
+    if rel_have_to_be_new
+        rel_type = get(ConceptManager(transaction), RelationType, relation_name)
+        # relation = create(as_remote(rel_type, transaction))
+        relates_to = get_plays(as_remote(rel_type, transaction))
+        #TODO: Workout relates and get it work if more than one item is meant.
+    end
+
+end
+
+function _set_attributes_of_entity!(transaction::AbstractCoreTransaction,
+    obj::AbstractThing,
+    save_struct)
+
+    for field in fieldnames(typeof(save_struct))
+        value = getproperty(save_struct,Symbol(field))
+
+        if !(typeof(value) <: Direct_Storables) && value !== nothing
+            attr_type = get(ConceptManager(transaction), AttributeType, string(field))
+            attr_old = get_has(transaction, obj, attr_type)
+            attr = _create_or_load_attribute(transaction, field, value)
+
+            if attr_old !== nothing
+                if attr.value != attr_old[1].value
+                    unset_has(transaction, obj, attr_old[1])
+                end
+            end
+
+            set_has(transaction, obj, attr)
+        elseif (typeof(value) <: Any)
+            _create_or_load_relation(transaction, obj, save_struct, string(field), value)
+        end
+    end
+    return obj
 end
 
 function value(save_struct::Any)
