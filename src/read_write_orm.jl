@@ -3,6 +3,8 @@ default_value_of(::Type{Bool}) = false
 default_value_of(::Type{<:Number}) = 0
 default_value_of(::Type{DbId}) = DbId()
 
+#### read section ###########################
+
 function filter_attributes(a::Vector{<:Any}, struct_type::Type{<:Any})
     # Secure that all elements of a are of type Build_Types
     @assert all(typeof.(a).<: Build_Types)
@@ -67,7 +69,7 @@ end
 function concept_to_struct(transaction::AbstractCoreTransaction,
     concept_or_attributes,
     inp_struct_type::Type{<:Any},
-    id_field::Tuple{Symbol, DataType},
+    id_field::FieldName_Type,
     thing::AbstractThing)
 
     filtered_attributes = filter_attributes(concept_or_attributes, inp_struct_type)
@@ -75,7 +77,7 @@ function concept_to_struct(transaction::AbstractCoreTransaction,
     attributes = values_of_attributes(transaction, filtered_attributes, inp_struct_type, thing)
     conversation_attributes = define_conversation(concept_or_attributes, inp_struct_type)
     # add iid to the attributes
-    conversation_attributes[id_field[1]] = DbId(thing.iid)
+    conversation_attributes[id_field.fieldname] = DbId(thing.iid)
 
     values = Vector{Any}()
     for field in fieldnames(inp_struct_type)
@@ -87,8 +89,8 @@ function concept_to_struct(transaction::AbstractCoreTransaction,
     end
 
     result = inp_struct_type(values...)
-    # set the id rigth
-    setfield!(result, id_field[1], DbId(thing.iid))
+    # set the id right
+    setfield!(result, id_field.fieldname, DbId(thing.iid))
 
     return result
 end
@@ -108,8 +110,6 @@ function read_concept_from_struct(transaction::AbstractCoreTransaction,
 
     # detect the id field inside the given struct type
     tuple_id_field = tuple_field_id(inp_struct_type)
-    @assert(tuple_id_field !== nothing,
-        "Please ensure that one field in your struct has filedtype DbId")
 
     thing_attributs = Dict()
     for instance in instances_of_type
@@ -127,6 +127,7 @@ function read_concept_from_struct(transaction::AbstractCoreTransaction,
     return result
 end
 
+####### write section contains new and update ##############
 function write_struct_new(transaction::AbstractCoreTransaction,
     save_struct,
     type::Type{<:AbstractThingType})
@@ -136,17 +137,17 @@ function write_struct_new(transaction::AbstractCoreTransaction,
     obj = _create_obj_from_type(transaction, type, save_struct)
 
     # take all fields of the struct and set attributes to the object
-    obj = _set_attributes_of_entity!(transaction, obj, save_struct)
+    thing = _set_attributes_of_entity!(transaction, obj, save_struct)
 
-    return obj
+    return thing
 end
 
 function write_struct_update(transaction::AbstractCoreTransaction,
     write_struct,
-    iid::String)
+    db_iid::DbId)
 
     # get the thing from the database
-    obj = get(ConceptManager(transaction), iid)
+    obj = get(ConceptManager(transaction), db_iid.iid)
 
     # take all fields of the struct and set attributes to the object
     obj = _set_attributes_of_entity!(transaction, obj, write_struct)
@@ -156,13 +157,31 @@ end
 
 function write_struct(transaction::AbstractCoreTransaction,
     write_struct,
-    type::Type{<:AbstractThingType},
-    iid::String = "")
+    type::Type{<:AbstractThingType} = EntityType)
 
-    if isempty(iid)
-        write_struct_new(transaction, write_struct, type)
+    iid_field_tupel = tuple_field_id(typeof(write_struct))
+    db_iid = getproperty(write_struct, iid_field_tupel.fieldname)
+
+    thing = nothing
+
+    if isempty(db_iid.iid)
+        thing = write_struct_new(transaction, write_struct, type)
     else
-        write_struct_update(transaction, write_struct, iid)
+        thing = write_struct_update(transaction, write_struct, db_iid)
+    end
+
+    return thing
+end
+
+####### delete functionality #####################
+function delete!(transaction::AbstractCoreTransaction, inp_struct::Any)
+    struct_iid = _get_struct_iid(inp_struct)
+    isempty(struct_iid.iid) && throw("Please provide the iid inside the struct type $(typeof(inp_struct))")
+    thing = get(ConceptManager(transaction), struct_iid.iid)
+    try
+        delete(as_remote(thing,transaction))
+    catch ex
+        @info ex
     end
 end
 
@@ -208,23 +227,61 @@ function _create_or_load_relation(transaction::AbstractCoreTransaction,
     relation_name::AbstractString,
     relation_struct)
 
-    #get all relations of the thing stored yet
-    rels = get_relations(transaction, thing)
-    rel_have_to_be_new = true
-    if !isempty(rels)
-        @error "not empty relations have to be implemented"
+    # make the relation type
+    rel_type = RelationType(Label("", relation_name), false)
+    # get the roles associated with the relation
+    roles = get_relates(as_remote(rel_type, transaction))
+    # filter the roles for the relation struct name
+    role_for_relation_struct = filter(x-> lowercase(x.label.name) ==
+                                        lowercase(string(typeof(relation_struct))), roles)
+
+    role_for_owner_struct = filter(x-> lowercase(x.label.name) ==
+                                        lowercase(string(typeof(owner_struct))), roles)
+
+    # getting the thingtype of the relation_struct for writing it to the database
+    relation_struct_type = _get_thingtype_for_role(transaction,
+                                role_for_relation_struct[1],
+                                relation_struct)
+
+    # write relation struct to the databse
+    rel_thing = write_struct(transaction, relation_struct, relation_struct_type)
+
+    # get the relations according the roles selected. For now there should be only one relation
+    # for a struct which will be stored.
+    # TODO: build the ability to store more then one struct aka Vector of structs
+    rels = Relation[]
+    try
+        rels = get_relations(transaction, thing, roles)
+    catch ex
+        occursin("Concept does not exist", ex.error_message) && throw("Please check your relation
+        name $relation_name in your struct $owner_struct against the definition in the schema")
     end
 
-    relates = nothing
-    if rel_have_to_be_new
-        rel_type = get(ConceptManager(transaction), RelationType, relation_name)
-        rel_type === nothing && throw("relation: $relation_name isn't defined in schema")
-        # relation = create(as_remote(rel_type, transaction))
-        relates_to = get_plays(as_remote(rel_type, transaction))
+    if !isempty(rels)
+        @assert length(rels) == 1 "For now only one struct per relation $relation_name
+                                    in $(string(owner_struct)) is supported"
+
+        player_rel = get_players(transaction, rels[1], role_for_relation_struct)
+        if length(player_rel) == 1
+            if player_rel[1].iid != rel_thing.iid
+                remove_player(transaction, rels[1], role_for_relation_struct[1], player_rel[1])
+                add_player(transaction, rels[1], role_for_relation_struct[1], rel_thing)
+            end
+        else
+            throw("something went wrong in updating the relation $relation_name
+            for struct $(string(owner_struct))")
+        end
+    else
+        # build new relations
+        relation = create(as_remote(rel_type, transaction))
+        # adding the relation struct to the give relation
+        add_player(transaction, relation, role_for_relation_struct[1], rel_thing)
+        # adding the owner struct to the give relation
+        add_player(transaction, relation, role_for_owner_struct[1], thing)
         #TODO: Workout relates and get it work if more than one item is meant.
     end
-    @info relates_to
-    return relates
+
+    return nothing
 end
 
 function _set_attributes_of_entity!(transaction::AbstractCoreTransaction,
@@ -246,7 +303,7 @@ function _set_attributes_of_entity!(transaction::AbstractCoreTransaction,
             end
 
             set_has(transaction, obj, attr)
-        elseif (typeof(value) <: Any) && value !== nothing
+        elseif (typeof(value) <: Any) && typeof(value) != DbId && value !== nothing
             _create_or_load_relation(transaction, obj, save_struct, string(field), value)
         end
     end
@@ -257,19 +314,33 @@ function value(save_struct::Any)
     return values(save_struct)
 end
 
+## The needed function should return the type of a Union type structure
+## which is not Nothing but Nothing has to be there.
+function _get_union_type(x::Union)
+    typeof(x.b) == Union && throw("The Union type $x contains too many types")
+    Nothing <: x || throw("One Nothing in your Union definition $x has to be there")
+    (x.a == Nothing) ? x.b : x.a
+end
+
 function _resulting_fieldtype(inp_struct_type::Type{<:Any}, field::Symbol)
     field_type = fieldtype(inp_struct_type, field)
     type_of_field_type = typeof(field_type)
 
     inside_types = nothing
     if type_of_field_type == Union
-        types = filter(x->x !== Nothing, Base.uniontypes(field_type))
-        length(types) != 1 && throw("
-        Not correct count of Types inside $inp_struct_type of field: $(string(field)). \n
-        For now only a kind of formulation like Union{Nothing, String} is possible")
-        inside_types = types[1]
+        inside_types = _get_union_type(field_type)
     else
         inside_types = fieldtype(inp_struct_type, field)
     end
     return inside_types
+end
+
+function _get_thingtype_for_role(transaction::AbstractCoreTransaction,
+    role::RoleType,
+    inp_struct::Any)
+
+   players = get_players(transaction, Label(role.label.scope, role.label.name))
+   filter!(x->lowercase(x.label.name) == lowercase(string(typeof(inp_struct))), players)
+   length(players) != 1 && throw("something went wrong detecting the ThingType from the role $role")
+   return typeof(players[1])
 end
