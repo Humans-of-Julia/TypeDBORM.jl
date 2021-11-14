@@ -16,6 +16,4 @@ include("read_write_orm.jl")
 export read_concept_from_struct, write_struct, default_value_of, delete!
 export DbId
 
-const Direct_Storables = Union{<:AbstractString, <:Number, Bool, Date, DateTime}
-
 end
