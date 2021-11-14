@@ -20,5 +20,5 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="GitHub.com/Humans-of-Julia/TypeDBORM.jl",
+    repo="GitHub.com/Humans-of-Julia/TypeDBORM.jl.git",
 )
