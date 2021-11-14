@@ -11,5 +11,5 @@ struct FieldName_Type
     type::Type
 end
 
-const Filter_Types = Union{<:AbstractAttributeType, <:AbstractRelationType}
 const Build_Types = Union{<:AbstractAttribute, <:AbstractRelation}
+const Direct_Storables = Union{<:AbstractString, <:Number, Bool, Date, DateTime}

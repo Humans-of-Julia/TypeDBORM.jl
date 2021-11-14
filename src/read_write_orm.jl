@@ -18,7 +18,7 @@ function filter_attributes(a::Vector{<:Any}, struct_type::Type{<:Any})
 end
 
 function filter_attributes(concept::ConceptMap)
-    return filter(x->typeof(x.type) <: Filter_Types, collect(values(concept.data)))
+    return filter(x->typeof(x.type) <: Build_Types, collect(values(concept.data)))
 end
 
 function _get_value(::AbstractCoreTransaction, inp::AbstractAttribute, ::Type{<:Any}, ::AbstractThing)
