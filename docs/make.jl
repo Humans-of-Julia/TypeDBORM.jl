@@ -10,7 +10,7 @@ makedocs(;
     sitename="TypeDBORM.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
-        canonical="https://Humans-of-Julia.github.io/TypeDBORM.jl",
+        canonical="https://Humans-of-Julia.github.io/TypeDBORM.jl/dev",
         assets=String[],
     ),
     pages=[
