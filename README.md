@@ -1,4 +1,4 @@
-# TypeDBORM
+# TypeDBORM.jl
 
 [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://Humans-of-Julia.github.io/TypeDBORM.jl/stable)
 [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://Humans-of-Julia.github.io/TypeDBORMl.jl/dev)
@@ -7,7 +7,7 @@
 
 ## For what is TypeDBORM supposed to be
 
-TypeDBORM is written on top of the TypeDBClient.jl. It works as object relational mapper to the typed database TypeDB.
+TypeDBORM.jl is written on top of the TypeDBClient.jl. It works as object relational mapper to the typed database TypeDB.
 
 ## Who should use this ORM
 
