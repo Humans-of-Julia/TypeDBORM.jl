@@ -1,7 +1,7 @@
 # TypeDBORM
 
-[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://Humans-of-Julia.github.io/TypeDBORM/stable)
-[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://Humans-of-Julia.github.io/TypeDBORM/dev)
+[![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://Humans-of-Julia.github.io/TypeDBORM.jl/stable)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://Humans-of-Julia.github.io/TypeDBORMl.jl/dev)
 [![Build Status](https://github.com/Humans-of-Julia/TypeDBORM/workflows/CI/badge.svg)](https://github.com/Humans-of-Julia/TypeDBORM.jl/actions)
 [![Coverage](https://codecov.io/gh/Humans-of-Julia/TypeDBORM/branch/master/graph/badge.svg)](https://codecov.io/gh/Humans-of-Julia/TypeDBORM.jl)
 

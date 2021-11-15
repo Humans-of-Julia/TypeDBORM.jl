@@ -72,6 +72,6 @@ define
         relates employee;
 ```
 
-Please note that the roles **relates address#** has to be written with the same naming as the structs.
+Please note that the roles **relates address** has to be written with the same naming as the structs.
 In this case address => Address. The naming isn't case sensitiv so you can follow the naming conventions
 in Julia that the names of structs begins with a uppercase Letter.
