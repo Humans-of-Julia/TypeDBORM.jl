@@ -1,13 +1,39 @@
 define
+
+    # Employee attributes
     name sub attribute, value string;
-    contact_person sub attribute, value string;
+    contact_person_first sub attribute, value string;
+    contact_person_second sub attribute, value string;
+    job_title sub attribute, value string;
     salutation sub attribute, value string;
     call_text sub attribute, value string;
     done sub attribute, value boolean;
+    callback_date sub attribute, value datetime;
+
+    # Address atributes
+    town sub attribute, value string;
+    zip_code sub attribute, value string;
+    house_nr sub attribute, value string;
+    street sub attribute, value string;
 
     Employee sub entity,
         owns name,
-        owns contact_person,
+        owns contact_person_first,
+        owns contact_person_second,
+        owns job_title,
         owns salutation,
         owns call_text,
-        owns done;
+        owns done,
+        owns callback_date,
+        plays address_rel:employee;
+
+    Address sub entity,
+        owns street,
+        owns house_nr,
+        owns zip_code,
+        owns town,
+        plays address_rel:address;
+
+    address_rel sub relation,
+        relates employee,
+        relates address;

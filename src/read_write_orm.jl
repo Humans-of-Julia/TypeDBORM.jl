@@ -25,6 +25,14 @@ function _get_value(::AbstractCoreTransaction, inp::AbstractAttribute, ::Type{<:
     return inp.value
 end
 
+function _get_value(::AbstractCoreTransaction,
+    inp::Attribute{VALUE_TYPE.DATETIME, Int64},
+    ::Type{<:Any},
+    ::AbstractThing )
+
+    return unix2datetime(inp.value / 1000)
+end
+
 function _get_value(transaction::AbstractCoreTransaction,
     inp_relation::AbstractRelation,
     inp_struct_type::Type{<:Any},
@@ -159,13 +167,13 @@ function write_struct(transaction::AbstractCoreTransaction,
     write_struct,
     type::Type{<:AbstractThingType} = EntityType)
 
-    iid_field_tupel = tuple_field_id(typeof(write_struct))
-    db_iid = getproperty(write_struct, iid_field_tupel.fieldname)
-
+    db_iid = _get_struct_iid(write_struct)
     thing = nothing
 
     if isempty(db_iid.iid)
         thing = write_struct_new(transaction, write_struct, type)
+        # write back the iid to the struct
+        db_iid.iid = thing.iid
     else
         thing = write_struct_update(transaction, write_struct, db_iid)
     end
