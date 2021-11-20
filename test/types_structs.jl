@@ -21,5 +21,6 @@ mutable struct Employee
     call_text::String
     done::Bool
     address_rel::Optional{Address}
+    callback_date::Optional{DateTime}
     iid::DbId
 end

@@ -11,7 +11,10 @@ struct Address
     addr_id::DbId
 end
 ```
-will be in the schema
+
+
+#### a simple translation into a schema
+
 
 ```
 define
